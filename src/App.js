@@ -1,21 +1,49 @@
-import React, { useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import { renderChild, refs } from './renderer';
-import { formJson } from './config/form';
-import { pageJson } from './config/page';
+import React, { useEffect, useReducer, useState } from 'react';
+import { renderer } from './engine/renderer';
+import { pageJson, pageInitialState, pageStateReducers } from './config/page';
+import eventEmitter from './eventEmitter';
 
+function reducer(state, action) {
+  const modifier = pageStateReducers[action.type].modifier;
+
+  if(modifier) {
+    return modifier(state, action);
+  }
+
+  return state;
+}
 
 
 const App = () => {
 
+  const [state, dispatch] = useReducer(reducer, pageInitialState);
+  const [compJson, setCompJson] = useState(pageJson);
+  const [lastPayload, setLastPayload] = useState(null);
+  
 
   useEffect(() => {
-
-    setTimeout(() => {
-      console.log(refs)
-    }, 5000)
+    const eventListener = ({action, payload}) => {
+      setLastPayload({ type: action, payload });
+      dispatch({ type: action, payload });
+    };
+  
+    eventEmitter.on('STATE_CHANGE', eventListener);
+  
+    return () => {
+      eventEmitter.off('STATE_CHANGE', eventListener);
+    };
   }, [])
 
-  return <div>{renderChild(pageJson)}</div>;
+  useEffect(() => {
+    if(lastPayload) {
+      const updatedJSON = {...compJson};
+      renderer.updateComponentProps(updatedJSON, state, lastPayload.payload);
+      setCompJson(updatedJSON);
+    }
+  }, [state]);
+
+
+
+  return <div>{renderer.render(compJson)}</div>;
 };
 export default App;
