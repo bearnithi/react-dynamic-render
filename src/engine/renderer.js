@@ -46,7 +46,7 @@ class BudRenderer {
       return React.createElement(
         this.componentMapping[ChildType] ? this.componentMapping[ChildType] : ChildType ,
         childProps,
-        Array.isArray(children) ? children.map(this.renderChild) : children,
+        Array.isArray(children) ? children.map(this.render) : children,
   
       );
     }
